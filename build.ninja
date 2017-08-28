@@ -1,0 +1,30 @@
+root = .
+builddir = build
+cxx = gcc
+ar = ar
+cflags = -g -Wall -Wextra
+ldflags = -L$builddir
+
+rule cxx
+  command = $cxx -MMD -MT $out -MF $out.d $cflags -c $in -o $out
+  description = CXX $out
+  depfile = $out.d
+  deps = gcc
+
+rule ar
+  command = rm -f $out && $ar crs $out $in
+  description = AR $out
+
+rule link
+  command = $cxx $ldflags -o $out $in $libs
+  description = LINK $out
+
+build $builddir/connie.o: cxx $root/src/connie.c
+build $builddir/records.o: cxx $root/src/records.c
+build $builddir/type.o: cxx $root/src/type.c
+build $builddir/assertion_code.o: cxx $root/src/assertion_code.c
+build $builddir/lib/libconnie.a: ar $builddir/connie.o $builddir/records.o $builddir/type.o $builddir/assertion_code.o
+
+build $builddir/connie_test.o: cxx $root/test/connie_test.c
+build $builddir/test/connie_test: link $builddir/connie_test.o | $builddir/lib/libconnie.a
+  libs = -lconnie
