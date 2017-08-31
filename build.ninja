@@ -1,12 +1,14 @@
 root = .
 builddir = build
+libdir = /usr/local/lib
+includedir = /usr/local/include
 cxx = gcc
 ar = ar
 cflags = -g -Wall -Wextra
 ldflags = -L$builddir
 
 rule cxx
-  command = $cxx -MMD -MT $out -MF $out.d $cflags -c $in -o $out
+  command = $cxx -MMD -MT $out -MF $out.d $cflags -c $in -o $out -I$root/include
   description = CXX $out
   depfile = $out.d
   deps = gcc
@@ -16,15 +18,31 @@ rule ar
   description = AR $out
 
 rule link
-  command = $cxx $ldflags -o $out $in $libs
+  command = $cxx $ldflags -o $out $in -L$builddir/lib $libs
   description = LINK $out
+
+rule copy
+  command = cp -f $in $out
+
+# build
 
 build $builddir/connie.o: cxx $root/src/connie.c
 build $builddir/records.o: cxx $root/src/records.c
 build $builddir/type.o: cxx $root/src/type.c
 build $builddir/assertion_code.o: cxx $root/src/assertion_code.c
 build $builddir/lib/libconnie.a: ar $builddir/connie.o $builddir/records.o $builddir/type.o $builddir/assertion_code.o
+build connie: phony $builddir/lib/libconnie.a
+
+# test
 
 build $builddir/connie_test.o: cxx $root/test/connie_test.c
 build $builddir/test/connie_test: link $builddir/connie_test.o | $builddir/lib/libconnie.a
   libs = -lconnie
+build test: phony $builddir/test/connie_test
+
+# install
+
+build $libdir/libconnie.a: copy $builddir/lib/libconnie.a
+build $includedir/connie.h: copy $root/include/connie.h
+build $includedir/connie_sugar.h: copy $root/include/connie_sugar.h
+build install: phony $libdir/libconnie.a $includedir/connie.h $includedir/connie_sugar.h
